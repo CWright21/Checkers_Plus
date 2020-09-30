@@ -1,0 +1,58 @@
+
+<CheckerScreen>:
+    tabMenu: menu
+    BoxLayout:
+
+        size: root.width, root.height
+        orientation: 'vertical'
+        TabbedPanel:
+            id: menu
+            do_default_tab: False
+            size_hint_y: .1
+            TabbedPanelItem:
+                id: home
+                text: "Home"
+                on_release: app.home_menu()
+                FloatLayout
+                    CBoxLayout:
+                        id: boxHome
+            TabbedPanelItem:
+                id: game
+                text: "Game"
+                on_release: app.game_menu()
+                FloatLayout
+                    CBoxLayout:
+                        id: boxGame
+
+
+        GridLayout:
+            id: board
+            size_hint_y: .9
+            cols:8
+            padding: [50,50,50,50]
+            canvas.before:
+                BorderImage:
+                    source: ".\\assets\\images\\chessboard.jpg"
+                    #border: 500,500,500,500
+                    pos: self.pos
+                    size: self.size
+    GridLayout:
+        opacity: 1
+        id: pieces
+        size: board.size
+        pos: board.pos
+        cols: 8
+        padding: [50,50,50,50]
+
+
+<CBoxLayout@BoxLayout+BackgroundColor>
+
+<BackgroundColor@Widget>
+#    pos_hint: {'center_x': .5, 'center_y': .5}
+#    size_hint: .9, .9
+#    canvas.before:
+#        Color:
+#            rgba: .2, .3, .4, 1
+#        Rectangle:
+#            size: self.size
+#            pos: self.pos
