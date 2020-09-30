@@ -154,7 +154,11 @@ class VirtualBoard:
         pass
 
     def announce_piece(self, x, y):
-        print(self.vBoard[int(x)][int(y)].team, " piece at %d, %d" % (x, y), "\n")
+        piece = self.vBoard[int(x)][int(y)]
+        if piece is not None:
+            print(piece.team, " piece at %d, %d" % (x, y), "\n")
+        else:
+            print("No piece at %d, %d" % (x, y), "\n")
 
 class CheckersApp(App):
     def build(self):
