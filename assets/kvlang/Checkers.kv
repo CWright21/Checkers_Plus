@@ -24,18 +24,20 @@
                     CBoxLayout:
                         id: boxGame
 
-
         GridLayout:
             id: board
+            opacity: 0
             size_hint_y: .9
             cols:8
             padding: [50,50,50,50]
             canvas.before:
                 BorderImage:
+                    id: backgroundImg
                     source: ".\\assets\\images\\chessboard.jpg"
                     #border: 500,500,500,500
                     pos: self.pos
                     size: self.size
+
     GridLayout:
         opacity: 1
         id: pieces
@@ -44,6 +46,39 @@
         cols: 8
         padding: [50,50,50,50]
 
+
+    AnchorLayout:
+        id: information_center
+        size: root.width, 50
+        anchor_y: 'bottom'
+        Label:
+            id:center_text
+            text: 'Hello, use the options above to start'
+            color: 1, 1, 1, 1
+            opacity: 1
+            font_size: 20
+
+
+<CustomRow>:
+    FloatLayout:
+        id: 0
+        pos: self.parent.pos
+    FloatLayout:
+        id: 1
+        pos: (0, self.parent.size[1] / 2)
+
+<CustomGrid>:
+    size: root.size
+    CustomRow:
+        id: 0
+    CustomRow:
+        id: 1
+
+<TestGame>:
+    FloatLayout:
+        id: testBase
+        CustomGrid:
+            id: testGrid
 
 <CBoxLayout@BoxLayout+BackgroundColor>
 
