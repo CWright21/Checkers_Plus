@@ -15,15 +15,16 @@ class AlphaBeta:
         best_state = None
         for state in successors:
             value = self.min_value(state, best_val, beta)
+            print(value)
             if value > best_val:
                 best_val = value
                 best_state = state
         print("AlphaBeta:  Utility Value of Root Node: = " + str(best_val))
-        print("AlphaBeta:  Best State is: " + best_state.Name)
+        print("AlphaBeta:  Best State is: " + best_state.name)
         return best_state
 
     def max_value(self, node, alpha, beta):
-        print("AlphaBeta–>MAX: Visited Node :: " + node.Name)
+        print("AlphaBeta–>MAX: Visited Node :: " + str(node.name))
         if self.isTerminal(node):
             return self.getUtility(node)
         infinity = float('inf')
@@ -38,7 +39,7 @@ class AlphaBeta:
         return value
 
     def min_value(self, node, alpha, beta):
-        print("AlphaBeta–>MIN: Visited Node :: " + node.Name)
+        print("AlphaBeta–>MIN: Visited Node :: " + str(node.name))
         if self.isTerminal(node):
             return self.getUtility(node)
         infinity = float('inf')

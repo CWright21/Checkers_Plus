@@ -24,6 +24,7 @@ from gametree import GameTree
 from gametree import GameNode
 from alphabeta import AlphaBeta
 from virtualboard import VirtualBoard
+from virtualboard import Piece
 
 pathToKvlang = ".\\assets\\kvlang\\Checkers.kv"
 pathToBlackGrid = ".\\assets\\images\\black_grid.jpg"
@@ -198,7 +199,10 @@ class CheckerScreen(Widget):
                     self.ids["center_text"].text = ("%s won!!" % (temp[1]))
                     self.del_board(None)
                 #TODO Insert auto execute Jumps?
-                self.possibleList = self.virtualBoard.check_jumps(self.activeTeam)
+                possibleJumpMoves = self.virtualBoard.check_jumps(self.activeTeam)
+                self.possibleList = []
+                for move in possibleJumpMoves:
+                    self.possibleList.append(move.to)
 
             #TODO execute jump
             elif (toX, toY) in self.possibleList and (abs(fromX-toX) == 2 or abs(fromY-toY) == 2):
@@ -248,7 +252,10 @@ class CheckerScreen(Widget):
                 if temp[0]:
                     self.ids["center_text"].text = ("%s won!!" % (temp[1]))
                     self.del_board(None)
-                self.possibleList = self.virtualBoard.check_jumps(self.activeTeam)
+                possibleJumpMoves = self.virtualBoard.check_jumps(self.activeTeam)
+                self.possibleList = []
+                for move in possibleJumpMoves:
+                    self.possibleList.append(move.to)
 
             else:
                 print("invalid move", end = '')
@@ -316,18 +323,6 @@ class CheckerScreen(Widget):
             self.activeTeam = "black"
         else:
             self.activeTeam = "red"
-
-
-class Piece:
-    def __init__(self, team):
-        self.team = team
-        self.king = False
-
-    def add_widget(self, widget):
-        self.widget = widget
-
-    def king_me(self):
-        self.king = True
 
 
 class CheckersApp(App):

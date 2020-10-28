@@ -1,3 +1,24 @@
+import sys
+from alphabeta import AlphaBeta
+from gametree import GameTree
+from gametree import Coord
+from gametree import Move
+
+
+
+
+class Piece:
+    def __init__(self, team):
+        self.team = team
+        self.king = False
+
+    def add_widget(self, widget):
+        self.widget = widget
+
+    def king_me(self):
+        self.king = True
+
+
 class VirtualBoard:
     def __init__(self):
         self.vBoard = [[], [], [], [], [], [], [], []]
@@ -6,6 +27,11 @@ class VirtualBoard:
             for j in range(8):
                 row.append(None)
             self.vBoard[i] = row
+
+    def initFromState(self, state):
+        self.vBoard = [[], [], [], [], [], [], [], []]
+        for c in range(8):
+            self.vBoard[c] = state[c]
 
     def add_piece_to_board(self, x, y, piece):
         self.vBoard[x][y] = piece
@@ -89,7 +115,7 @@ class VirtualBoard:
                 if returns.pop(0):
                     print(returns)
                     for jump in returns:
-                        possibleList.append(jump)
+                        possibleList.append(Move(Coord(x, y), Coord(jump[0], jump[1])))
                         print("found a jump from %d, %d to %d, %d" % (x, y, jump[0], jump[1]))
 
         if len(possibleList) == 0:
@@ -249,9 +275,7 @@ class VirtualBoard:
                                     print(y+2, x-2, " is occupied")
         return toReturn
 
-
     def execute_jump(self, fromX, fromY, toX, toY):
-        #TODO perform a jump
         piece = self.vBoard[fromY][fromX]
 
         if toX > fromX:
@@ -278,9 +302,93 @@ class VirtualBoard:
             else:
                 print("No piece at %d, %d" % (x, y), "\n")
 
-    def generate_game_tree(self):
+    def generate_game_tree(self, team, diff):
         #TODO Generate Game state tree from current state
-        pass
+        #TODO LOOK into how a move is validated and why there are board states being generated that do not have moves associated or terminals
+        '''
+        each state should be named according to the format fromX,fromY-toX,toY
+        '''
+        states =[]
+        moves = self.generate_possible_team_moves(team)
+        print(moves)
+        for move in moves:
+            states += self.generate_game_tree_helper(move, diff, diff)
+
+        print('size of states', sys.getsizeof(states))
+        print(states)
+        print()
+        return GameTree(states)
+
+    #returns a list of possible game states assuming the move sent is made looking depth moves deep
+    #account for game ending early
+    def generate_game_tree_helper(self, move, depth, diff, team='red'):
+        newBoard = VirtualBoard()
+        newBoard.initFromState(self.vBoard)
+        newBoard.move_piece(move.frm.x, move.frm.y, move.to.x, move.to.x)
+
+        #base
+        if depth == 0:
+            child = (move, newBoard.eval_state(diff))
+            return child
+
+        else:
+            if team == 'red':
+                team = 'black'
+            else:
+                team = 'red'
+
+            nextMoves = newBoard.generate_possible_team_moves(team)
+            children = []
+            #for every move possible for the pther team
+            for nextMove in nextMoves:
+                print("next Moves", nextMoves)
+                children.append(newBoard.generate_game_tree_helper(nextMove, depth-1, diff))
+            child = [move, children]
+
+            return child
+
+    #returns a list of possible moves given a starting coord
+    #format: [((fromx,fromy) , (tox,toy)) , ...]
+    #account for if the game ends
+    def generate_possible_moves(self, x, y, team):
+        moves = []
+        #moves += self.check_jumps(team)
+        fromX = x
+        fromY = y
+        for toY in range(y-1, y+2):
+            for toX in range(x-1, x+2):
+                if 0 <= toX < 8 and 0 <= toY < 8 and self.check_move(fromX, fromY, toX, toY, team):
+                    moves.append(Move(Coord(fromX, fromY), Coord(toX, toY)))
+        return moves
+
+    # returns a list of possible moves given a team
+    # format: [((fromx,fromy) , (tox,toy)) , ...]
+    # account for if the game ends
+    def generate_possible_team_moves(self, team):
+        moves = []
+        for y in range(8):
+            for x in range(8):
+                piece = self.vBoard[y][x]
+                if piece is not None:
+                    moves += self.generate_possible_moves(x, y, team)
+        return moves
+
+    def eval_state(self, diff):
+        #TODO grade each board state according to diff
+        value = 0
+        if diff > 0:
+            for c in self.vBoard:
+                for piece in c:
+                    if piece is not None:
+                        if piece.team == 'black':
+                            value-=.5
+                        elif piece.team == 'red':
+                            value+=1
+        if diff > 1:
+            pass
+        if diff > 2:
+            pass
+        return value
 
     def check_for_game_end(self):
         redLose = True
@@ -313,3 +421,29 @@ class VirtualBoard:
                     toReturn += '+'
             toReturn += '\n'
         return toReturn
+
+    def parse_data_as_text(self, fname):
+        with open(fname) as f:
+            for r in range(8):
+                line = f.readline().rstrip('\n')
+                for c in range(len(line)):
+                    char = line[c]
+                    if char == 'r':
+                        self.add_piece_to_board(r, c, Piece('red'))
+                    elif char == 'b':
+                        self.add_piece_to_board(r, c, Piece('black'))
+
+
+
+
+def main():
+    filename = 'testBoardStates.txt'
+    print("hello world! " + filename)
+    testBoard = VirtualBoard()
+    testBoard.parse_data_as_text(filename)
+    print(testBoard)
+    tree = testBoard.generate_game_tree('red', 3)
+    a_b = AlphaBeta(tree)
+    a_b.alpha_beta_search(a_b.root)
+if __name__ == "__main__":
+    main()

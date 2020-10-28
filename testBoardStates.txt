@@ -1,0 +1,70 @@
+r+r+r+r+
++r+r+r+r
+r+r+r+r+
+++++++++
+++++++++
++b+b+b+b
+b+b+b+b+
++b+b+b+b
+
+
+[<gametree.Move object at 0x0317D770>,
+    [<gametree.Move object at 0x0317D810>,
+        (<gametree.Move object at 0x0317DAF0>, 0),
+        (<gametree.Move object at 0x0317DB50>, 0),
+        (<gametree.Move object at 0x0317DBB0>, 0),
+        (<gametree.Move object at 0x0317DC30>, 0),
+        (<gametree.Move object at 0x0317DC90>, 0),
+        (<gametree.Move object at 0x0317DCF0>, 0),
+        (<gametree.Move object at 0x0317DD50>, 0)],
+
+    [<gametree.Move object at 0x0317D870>,
+        (<gametree.Move object at 0x0317DBF0>, 0),
+        (<gametree.Move object at 0x0317DDF0>, 0),
+        (<gametree.Move object at 0x0317DE50>, 0),
+        (<gametree.Move object at 0x0317DED0>, 0),
+        (<gametree.Move object at 0x0317DDD0>, 0),
+        (<gametree.Move object at 0x0317DF10>, 0),
+        (<gametree.Move object at 0x0317DF70>, 0),
+        (<gametree.Move object at 0x0317DFD0>, 0),
+        (<gametree.Move object at 0x03183050>, 0)],
+
+    [<gametree.Move object at 0x0317D8D0>,
+        (<gametree.Move object at 0x0317D630>, 0),
+        (<gametree.Move object at 0x03183090>, 0),
+        (<gametree.Move object at 0x031830F0>, 0),
+        (<gametree.Move object at 0x03183070>, 0),
+        (<gametree.Move object at 0x031830D0>, 0)],
+    [<gametree.Move object at 0x0317D950>],
+    [<gametree.Move object at 0x0317D9B0>],
+    [<gametree.Move object at 0x0317DA10>],
+    [<gametree.Move object at 0x0317DA70>],
+<gametree.Move object at 0x0317D7B0>,
+    [<gametree.Move object at 0x031832B0>,
+        (<gametree.Move object at 0x03183270>, 0)],
+<gametree.Move object at 0x0317D730>,
+<gametree.Move object at 0x031832F0>,
+<gametree.Move object at 0x03183350>,
+<gametree.Move object at 0x031834D0>,
+<gametree.Move object at 0x031833D0>,
+<gametree.Move object at 0x03183470>,
+<gametree.Move object at 0x03183430>,
+<gametree.Move object at 0x03183550>,
+<gametree.Move object at 0x031833F0>]
+
+[<gametree.Move object at 0x03A4D770>,
+    (<gametree.Move object at 0x03A4D810>, 0),
+    (<gametree.Move object at 0x03A4D870>, 0),
+    (<gametree.Move object at 0x03A4D8D0>, 0),
+    (<gametree.Move object at 0x03A4D950>, 0),
+    (<gametree.Move object at 0x03A4D9B0>, 0),
+    (<gametree.Move object at 0x03A4DA10>, 0),
+    (<gametree.Move object at 0x03A4DA70>, 0),
+<gametree.Move object at 0x03A4D910>,
+    (<gametree.Move object at 0x03A4DB10>, 0),
+    (<gametree.Move object at 0x03A4DC30>, 0),
+    (<gametree.Move object at 0x03A4DC90>, 0),
+    (<gametree.Move object at 0x03A4DD10>, 0),
+    (<gametree.Move object at 0x03A4DD70>, 0),
+
+
