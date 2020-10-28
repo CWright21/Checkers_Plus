@@ -59,27 +59,6 @@
             font_size: 20
 
 
-<CustomRow>:
-    FloatLayout:
-        id: 0
-        pos: self.parent.pos
-    FloatLayout:
-        id: 1
-        pos: (0, self.parent.size[1] / 2)
-
-<CustomGrid>:
-    size: root.size
-    CustomRow:
-        id: 0
-    CustomRow:
-        id: 1
-
-<TestGame>:
-    FloatLayout:
-        id: testBase
-        CustomGrid:
-            id: testGrid
-
 <CBoxLayout@BoxLayout+BackgroundColor>
 
 <BackgroundColor@Widget>

@@ -20,6 +20,10 @@ from kivy.properties import (ObjectProperty,
                              NumericProperty,
                              ReferenceListProperty,
                              ListProperty)
+from gametree import GameTree
+from gametree import GameNode
+from alphabeta import AlphaBeta
+from virtualboard import VirtualBoard
 
 pathToKvlang = ".\\assets\\kvlang\\Checkers.kv"
 pathToBlackGrid = ".\\assets\\images\\black_grid.jpg"
@@ -33,18 +37,9 @@ minSizeWidth = 650
 windowSize = (650, 715)
 
 
-class CustomRow(FloatLayout):
-    pass
-
-
-class CustomGrid(FloatLayout):
-    def add_child_to_specific(self, row, col, widget):
-        self.ids[row].ids[col].add_widget(widget)
-    pass
-
-
 class CheckerScreen(Widget):
     tabMenu = ObjectProperty(None)
+
     def __init__(self):
         super(CheckerScreen, self).__init__()
         self.activeGame = False
@@ -134,7 +129,6 @@ class CheckerScreen(Widget):
 
         print(self.pieces.ids)
 
-
     def board_press(self, widget):
         print(self.virtualBoard)
         sizeOfGrid = list(widget.parent.size)
@@ -161,9 +155,17 @@ class CheckerScreen(Widget):
             toX = round(widget.pos[0] / sizeOfGrid[0])
             fromX = int(idArr[0])
             fromY = int(idArr[1])
-            self.move_piece(fromX, fromY, toX, toY, widget)
+            self.move_piece_human(fromX, fromY, toX, toY, widget)
 
-    def move_piece(self, fromX, fromY, toX, toY, widget):
+    def move_piece_ai(self, fromX, fromY, toX, toY):
+        id = (str(toX) + ',' + str(toY))
+        for child in self.pieces.children:
+            if child.id == id:
+                widget = Label(pos=child.pos)
+        self.move_piece_human(fromX, fromY, toX, toY, widget)
+        pass
+
+    def move_piece_human(self, fromX, fromY, toX, toY, widget):
         print(self.pieces.children)
         if self.activePieceId is not None:
             for child in self.pieces.children:
@@ -172,8 +174,7 @@ class CheckerScreen(Widget):
 
             print("move is a jump ", (toX, toY) in self.possibleList)
             print(self.possibleList)
-            if not (toX, toY) in self.possibleList and len(self.possibleList) == 0 and\
-                    self.virtualBoard.check_move(fromX, fromY, toX, toY, self.activeTeam):
+            if len(self.possibleList) == 0 and self.virtualBoard.check_move(fromX, fromY, toX, toY, self.activeTeam):
 
                 self.virtualBoard.move_piece(fromX, fromY, toX, toY)
                 piece.pos = widget.pos
@@ -192,13 +193,15 @@ class CheckerScreen(Widget):
                 widget.state = 'normal'
                 self.reset_piece_picture(piece)
                 self.activePieceId = None
-
-
-                #TODO Insert Check and execute Jumps
+                temp = self.virtualBoard.check_for_game_end()
+                if temp[0]:
+                    self.ids["center_text"].text = ("%s won!!" % (temp[1]))
+                    self.del_board(None)
+                #TODO Insert auto execute Jumps?
                 self.possibleList = self.virtualBoard.check_jumps(self.activeTeam)
 
             #TODO execute jump
-            elif (toX, toY) in self.possibleList:
+            elif (toX, toY) in self.possibleList and (abs(fromX-toX) == 2 or abs(fromY-toY) == 2):
                 self.possibleList = []
                 self.virtualBoard.execute_jump(fromX, fromY, toX, toY)
 
@@ -226,26 +229,45 @@ class CheckerScreen(Widget):
                     middleY = toY + 1
 
                 for child in self.pieces.children:
+                    print(child.id, str(middleX) + ',' + str(middleY), " | ", end='')
                     if child.id == str(middleX) + ',' + str(middleY):
-                        child.opacity = 0
+                        print("found child")
+                        print(piece.id, piece.opacity)
+                        child.opacity = .5
+                        child.pos = (0,0)
+                        child.id = '9,9'
+                        child.disabled = True
                         break
+                print()
 
                 self.switchTeam()
                 widget.state = 'normal'
                 self.reset_piece_picture(piece)
                 self.activePieceId = None
+                temp = self.virtualBoard.check_for_game_end()
+                if temp[0]:
+                    self.ids["center_text"].text = ("%s won!!" % (temp[1]))
+                    self.del_board(None)
                 self.possibleList = self.virtualBoard.check_jumps(self.activeTeam)
 
             else:
-                print("invalid move")
+                print("invalid move", end = '')
+                infotext = "invalid move"
+                if len(self.possibleList) > 0:
+                    print("there are valid moves")
+                    infotext += ", there is/are valid jump(s)"
+                else:
+                    print("make sure it is your turn")
+                    infotext += ", make sure it is your turn"
                 widget.state = 'normal'
                 self.reset_piece_picture(piece)
                 self.activePieceId = None
-                self.ids["center_text"].text = ("Invalid Move")
+                self.ids["center_text"].text = (infotext)
 
     def piece_press(self, widget):
         if self.activePieceId is None:
             print("Pressed piece at: ", widget.id)
+            print(self.virtualBoard.announce_piece(int(widget.id[2:]), int(widget.id[0:1])))
             self.ids["center_text"].text = ("Pressed piece at: " + widget.id)
             self.activePieceId = widget.id
             widget.background_normal = ".\\assets\\images\\down_grid.jpg"
@@ -306,312 +328,6 @@ class Piece:
 
     def king_me(self):
         self.king = True
-
-
-class VirtualBoard:
-    def __init__(self):
-        self.vBoard = [[], [], [], [], [], [], [], []]
-        for i in range(8):
-            row = self.vBoard[i]
-            for j in range(8):
-                row.append(None)
-            self.vBoard[i] = row
-
-    def add_piece_to_board(self, x, y, piece):
-        self.vBoard[x][y] = piece
-
-    def move_piece(self, fromX, fromY, toX, toY):
-        piece = None
-        piece = self.vBoard[fromY][fromX]
-        self.vBoard[fromY][fromX] = None
-        self.vBoard[toY][toX] = piece
-
-    '''
-        returns true if move is valid
-    '''
-    def check_move(self, fromX, fromY, toX, toY, team):
-        print("checking from", fromX, ',', fromY, ' to ', toX, ',', toY)
-        # is piece at starting coords
-        isAtStart = self.vBoard[fromY][fromX] is not None
-        if isAtStart:
-            print("is at start")
-        else:
-            return False
-
-        # is there a piece aat ending coords
-        endOpen = self.vBoard[toY][toX] is None
-        #print(self.vBoard[toY][toX])
-        if endOpen:
-            print("end is open")
-
-        # is the piece yours
-        correctTeam = self.vBoard[fromY][fromX].team == team
-        if correctTeam:
-            print("piece is yours")
-
-        # is valid direction to move (x +/- 1, y + 1)
-        if self.vBoard[fromY][fromX].team == "red":
-            validPawnMove = (fromY == toY - 1 and toX + 1 == fromX) or \
-                            (fromY == toY - 1 and toX - 1 == fromX)
-        else:
-            validPawnMove = (fromY == toY + 1 and toX + 1 == fromX) or \
-                            (fromY == toY + 1 and toX - 1 == fromX)
-
-        if validPawnMove:
-            print("valid pawn move")
-
-        # if king and valid king move (x +/- 1, y - 1)
-        if self.vBoard[fromY][fromX].team == "red":
-            validKingMove = self.vBoard[fromY][fromX].king and \
-                            ((fromY - 1  == toY and fromX + 1 == toX) or
-                             (fromY - 1  == toY and fromX - 1 == toX))
-
-        else:
-            print(self.vBoard[fromY][fromX].king)
-            print((fromY + 1 == toY and (fromX + 1 == toX or fromX - 1 == toX)))
-            validKingMove = self.vBoard[fromY][fromX].king and \
-                            (fromY + 1 == toY and (fromX + 1 == toX or fromX - 1 == toX))
-
-        if validKingMove:
-            print("valid king move")
-
-        return isAtStart and endOpen and correctTeam and (validPawnMove or validKingMove)
-
-    def king_piece(self, x, y):
-        print()
-        self.vBoard[y][x].king_me()
-
-    def get_king(self, x, y):
-        if self.vBoard[y][x] is not None:
-            return self.vBoard[y][x].king
-        return False
-
-    def get_team(self, x, y):
-        if self.vBoard[y][x] is not None:
-            return self.vBoard[y][x].team
-        return None
-
-    def check_jumps(self, team):
-        possibleList = []
-        for y in range(8):
-            for x in range(8):
-                returns = self.check_jump(x, y, team)
-                if returns[0]:
-                    coords = (returns[1], returns[2])
-                    possibleList.append(coords)
-                    print("found a jump from %d, %d to %d, %d" % (x, y, returns[1], returns[2]))
-        if len(possibleList) == 0:
-            print("no jumps found")
-        return possibleList
-
-    def check_jump(self, x, y, team):
-        #TODO Write code to check for jumps across board
-        #checking jump
-        if self.vBoard[y][x] is not None:
-            piece = self.vBoard[y][x]
-
-            #if correct team (player ready to move)
-            if piece.team == team:
-
-                #check for jumps from target piece
-                #check to see if adj to enemy piece
-                withinRange = 0 < y + 2 < 8 and 0 < x + 2 < 8
-                if team == "red":
-                    withinRangeDown = 0 < y - 1 < 8
-                    withinRangeUp = 0 < y + 1 < 8
-                    withinRangeLeft = 0 < x + 1 < 8
-                    withinRangeRight = 0 < x - 1 < 8
-
-                    # target is up-left
-                    if withinRangeUp and withinRangeLeft:
-                        enemyUpLeft = self.vBoard[y + 1][x + 1] is not None and self.vBoard[y + 1][x + 1].team != team
-
-                    else:
-                        enemyUpLeft = False
-
-                    # target is up-right
-                    if withinRangeUp and withinRangeRight:
-                        enemyUpRight = self.vBoard[y + 1][x - 1] is not None and self.vBoard[y + 1][x - 1].team != team
-
-                    else:
-                        enemyUpRight = False
-
-                    if withinRangeDown and (withinRangeLeft or withinRangeRight):
-                        if piece.king and not (enemyUpLeft or enemyUpRight):
-                            # target is down-left
-                            if withinRangeLeft:
-                                enemyDownLeft = self.vBoard[y - 1][x + 1] is not None and self.vBoard[y - 1][
-                                    x + 1].team != team
-                            # target is down-right
-                            else:
-                                enemyDownRight = self.vBoard[y - 1][x - 1] is not None and self.vBoard[y - 1][
-                                    x - 1].team != team
-
-                        else:
-                            enemyDownLeft = enemyDownRight = False
-                    else:
-                        enemyDownLeft = enemyDownRight = False
-
-                #black
-                else:
-                    withinRangeUp = 0 < y - 1 < 8
-                    withinRangeDown = 0 < y + 1 < 8
-                    withinRangeLeft = 0 < x + 1 < 8
-                    withinRangeRight = 0 < x - 1 < 8
-                    # target is up-left
-                    if withinRangeUp and withinRangeLeft:
-                        enemyUpLeft = self.vBoard[y - 1][x + 1] is not None and self.vBoard[y - 1][x + 1].team != team
-
-                    else:
-                        enemyUpLeft = False
-
-                    # target is up-right
-                    if withinRangeUp and withinRangeRight:
-                        enemyUpRight = self.vBoard[y - 1][x - 1] is not None and self.vBoard[y - 1][x - 1].team != team
-
-                    else:
-                        enemyUpRight = False
-
-                    if withinRangeDown and (withinRangeLeft or withinRangeRight):
-                        if piece.king and not (enemyUpLeft or enemyUpRight):
-                            # target is down-left
-                            if withinRangeLeft:
-                                enemyDownLeft = self.vBoard[y + 1][x + 1] is not None and self.vBoard[y + 1][
-                                    x + 1].team != team
-                            # target is down-right
-                            else:
-                                enemyDownRight = self.vBoard[y + 1][x - 1] is not None and self.vBoard[y + 1][
-                                    x - 1].team != team
-
-                        else:
-                            enemyDownLeft = enemyDownRight = False
-                    else:
-                        enemyDownLeft = enemyDownRight = False
-
-                #if enemy exists
-                if enemyUpLeft or enemyUpRight or enemyDownLeft or enemyDownRight:
-                    print("\nJump function:\nUpLeft: ", enemyUpLeft, "\nUpRight: ", enemyUpRight, "\nDownLeft: ",
-                          enemyDownLeft, "\nDownRight: ", enemyDownRight)
-                    #TODO Optimize boolean checks, reduce to functions probably
-                    #check if the following tile is empty
-
-                    if team == "red":
-                        withinRangeDown = 0 < y - 2 < 8
-                        withinRangeUp = 0 < y + 2 < 8
-                        withinRangeLeft = 0 < x + 2 < 8
-                        withinRangeRight = 0 < x - 2 < 8
-                        if enemyUpLeft:
-                            if withinRangeUp and withinRangeLeft:
-                                if self.vBoard[y+2][x+2] is None:
-                                    return True, x+2, y+2
-                            else:
-                                return [False]
-
-                        if enemyUpRight:
-                            if withinRangeUp and withinRangeRight:
-                                if self.vBoard[y+2][x-2] is None:
-                                    return True, x-2, y+2
-                            else:
-                                return [False]
-
-                        if enemyDownLeft:
-                            if withinRangeDown and withinRangeLeft:
-                                if self.vBoard[y-2][x+2] is None:
-                                    return True, x+2, y-2
-                            else:
-                                return [False]
-
-                        if enemyDownRight:
-                            if withinRangeDown and withinRangeRight:
-                                if self.vBoard[y-2][x-2] is None:
-                                    return True, x-2, y-2
-                            else:
-                                return [False]
-
-                    #black
-                    else:
-                        print("black piece has enemies")
-                        withinRangeUp = 0 < y - 2 < 8
-                        withinRangeDown = 0 < y + 2 < 8
-                        withinRangeLeft = 0 < x + 2 < 8
-                        withinRangeRight = 0 < x - 2 < 8
-                        if enemyUpLeft:
-                            if withinRangeUp and withinRangeLeft:
-                                if self.vBoard[y-2][x+2] is None:
-                                    return True, x+2, y-2
-                                else:
-                                    print(y-2, x+2, " is occupied")
-                            else:
-                                return [False]
-
-                        if enemyUpRight:
-                            if withinRangeUp and withinRangeRight:
-                                if self.vBoard[y-2][x-2] is None:
-                                    print("valid jump")
-                                    return True, x-2, y-2
-                                else:
-                                    print(y-2, x-2, " is occupied")
-                            else:
-                                return [False]
-
-                        if enemyDownLeft:
-                            if withinRangeDown and withinRangeLeft:
-                                if self.vBoard[y+2][x+2] is None:
-                                    return True, x+2, y+2
-                            else:
-                                return [False]
-
-                        if enemyDownRight:
-                            if withinRangeDown and withinRangeRight:
-                                if self.vBoard[y+2][x-2] is None:
-                                    return True, x-2, y+2
-                            else:
-                                return [False]
-
-        return [False]
-
-
-    def execute_jump(self, fromX, fromY, toX, toY):
-        #TODO perform a jump
-        piece = self.vBoard[fromY][fromX]
-
-        if toX > fromX:
-            middleX = toX-1
-        else:
-            middleX = toX+1
-
-        if toY > fromY:
-            middleY = toY-1
-        else:
-            middleY = toY+1
-
-        self.vBoard[middleY][middleY] = None
-
-        self.vBoard[toY][toX] = piece
-        self.vBoard[fromY][fromX] = None
-        pass
-
-    def announce_piece(self, x, y):
-        piece = self.vBoard[int(x)][int(y)]
-        if piece is not None:
-            print(piece.team, " piece at %d, %d" % (x, y), "\n")
-        else:
-            print("No piece at %d, %d" % (x, y), "\n")
-
-    def __str__(self):
-        toReturn = ''
-        for c in range(8):
-            for r in range(8):
-                if self.vBoard[c][r] is not None:
-                    if self.vBoard[c][r].team == "red":
-                        toReturn += 'r'
-                    else:
-                        toReturn += 'b'
-                else:
-                    toReturn += ' '
-            toReturn += '\n'
-        return toReturn
-
 
 
 class CheckersApp(App):
@@ -680,47 +396,6 @@ class CheckersApp(App):
         popGary = Popup(title='This is Gary', size_hint=(.5, .5), content=Image(source="gary.png", size=(100, 100)))
         popGary.open()
 
-'''
-def children(branch, depth, alpha, beta):
-    global tree
-    global root
-    global pruned
-    i = 0
-    for child in branch:
-        if type(child) is list:
-            (nalpha, nbeta) = children(child, depth + 1, alpha, beta)
-            if depth % 2 == 1:
-                beta = nalpha if nalpha < beta else beta
-            else:
-                alpha = nbeta if nbeta > alpha else alpha
-            branch[i] = alpha if depth % 2 == 0 else beta
-            i += 1
-        else:
-            if depth % 2 == 0 and alpha < child:
-                alpha = child
-            if depth % 2 == 1 and beta > child:
-                beta = child
-            if alpha >= beta:
-                pruned += 1
-                break
-    if depth == root:
-        tree = alpha if root == 0 else beta
-    return (alpha, beta)
-
-def alphabeta(in_tree=tree, start=root, upper=-15, lower=15):
-    global tree
-    global pruned
-    global root
-
-    (alpha, beta) = children(tree, start, upper, lower)
-
-    if __name__ == "__main__":
-        print ("(alpha, beta): ", alpha, beta)
-        print ("Result: ", tree)
-        print ("Times pruned: ", pruned)
-
-    return (alpha, beta, tree, pruned)
-'''
 
 if __name__ == '__main__':
     Builder.load_file(pathToKvlang)
