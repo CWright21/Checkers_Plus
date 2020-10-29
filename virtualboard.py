@@ -145,11 +145,11 @@ class VirtualBoard:
                     #print(returns)
                     for jump in returns:
                         possibleList.append(Move(Coord(x, y), Coord(jump[0], jump[1])))
-                        print("found a jump from %d, %d to %d, %d" % (x, y, jump[0], jump[1]))
+                        #print("found a jump from %d, %d to %d, %d" % (x, y, jump[0], jump[1]))
 
-        if len(possibleList) == 0:
-            print("no jumps found")
-        print(possibleList)
+        #if len(possibleList) == 0:
+            #print("no jumps found")
+        #print(possibleList)
         return possibleList
 
     '''
@@ -236,7 +236,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x + 2, y + 2))
                                 else:
-                                    print(y + 2, x + 2, " is occupied")
+                                    #print(y + 2, x + 2, " is occupied")
+                                    pass
 
                         if enemyUpRight:
                             if withinRangeUp and withinRangeRight:
@@ -244,7 +245,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x - 2, y + 2))
                                 else:
-                                    print(y + 2, x - 2, " is occupied")
+                                    #print(y + 2, x - 2, " is occupied")
+                                    pass
 
                         if enemyDownLeft:
                             if withinRangeDown and withinRangeLeft:
@@ -252,7 +254,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x + 2, y - 2))
                                 else:
-                                    print(y - 2, x + 2, " is occupied")
+                                    #print(y - 2, x + 2, " is occupied")
+                                    pass
 
                         if enemyDownRight:
                             if withinRangeDown and withinRangeRight:
@@ -260,11 +263,12 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x - 2, y - 2))
                                 else:
-                                    print(y - 2, x - 2, " is occupied")
+                                    #print(y - 2, x - 2, " is occupied")
+                                    pass
 
                     #black
                     else:
-                        print("black piece at %d,%d has enemies" % (x,y))
+                        #print("black piece at %d,%d has enemies" % (x,y))
                         withinRangeUp = 0 <= y - 2 < 8
                         withinRangeDown = 0 <= y + 2 < 8
                         withinRangeLeft = 0 <= x - 2 < 8
@@ -275,7 +279,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x - 2, y - 2))
                                 else:
-                                    print(y-2, x-2, " is occupied")
+                                    #print(y-2, x-2, " is occupied")
+                                    pass
 
                         if enemyUpRight:
                             if withinRangeUp and withinRangeRight:
@@ -283,7 +288,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x + 2, y - 2))
                                 else:
-                                    print(y-2, x+2, " is occupied")
+                                    #print(y-2, x+2, " is occupied")
+                                    pass
 
                         if enemyDownLeft:
                             if withinRangeDown and withinRangeLeft:
@@ -291,7 +297,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x - 2, y + 2))
                                 else:
-                                    print(y+2, x+2, " is occupied")
+                                    #print(y+2, x+2, " is occupied")
+                                    pass
 
                         if enemyDownRight:
                             if withinRangeDown and withinRangeRight:
@@ -299,7 +306,8 @@ class VirtualBoard:
                                     toReturn[0] = True
                                     toReturn.append((x + 2, y + 2))
                                 else:
-                                    print(y+2, x-2, " is occupied")
+                                    #print(y+2, x-2, " is occupied")
+                                    pass
         return toReturn
 
     def execute_jump(self, fromX, fromY, toX, toY):
@@ -348,6 +356,7 @@ class VirtualBoard:
         print('size of tree', get_size(tree))
         return tree
 
+    # TODO Mutli thread it?
     #returns a list of possible game states assuming the move sent is made looking depth moves deep
     #account for game ending early
     def generate_game_tree_helper(self, move, depth, diff, team='red'):
@@ -411,23 +420,32 @@ class VirtualBoard:
     def eval_state(self, diff):
         # TODO grade each board state according to diff
         value = 0
-        #only piece count, favor keeping team pieces
-        if diff > 0:
-            for c in self.vBoard:
-                for piece in c:
-                    if piece is not None:
+
+        for c in self.vBoard:
+            for piece in c:
+                if piece is not None:
+                    # 1: only piece count, favor keeping team pieces
+                    # 2: count kings as more valuable
+                    # 3: count the edges as stronger, 3 for edges
+                    if diff > 0:
                         if piece.team == 'black':
-                            value-=.5
+                            value -= 6
+                            if diff > 1 and piece.king:
+                                value -= 4
+                            if diff > 2:
+                                if c == 0 or c == 7:
+                                    value -= 3
+
                         elif piece.team == 'red':
-                            value+=1
+                            value += 8
+                            if diff > 1 and piece.king:
+                                value += 6
+                            if diff > 2:
+                                if c == 0 or c == 7:
+                                    value += 3
 
-        #count kings as more valuable
-        if diff > 1:
-            pass
 
-        #count the edges as stronger, 1 for edges, .5 for adjacent
-        if diff > 2:
-            pass
+
 
         return value
 

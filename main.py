@@ -300,7 +300,7 @@ class CheckerScreen(Widget):
                 for move in possibleJumpMoves:
                     self.possibleList.append(move.to)
 
-            #TODO maybe double jump
+            # TODO maybe double jump
             elif isValidJump and (abs(fromX-toX) == 2 or abs(fromY-toY) == 2):
                 self.possibleList = []
                 self.virtualBoard.execute_jump(fromX, fromY, toX, toY)
@@ -522,7 +522,7 @@ class CheckersApp(App):
         elif widget.id == 'med':
             self.screen.aiDiff = 2
         elif widget.id == 'hard':
-            self.screen.aiDiff = 3
+            self.screen.aiDiff = 5
         elif widget.id == 'none':
             self.screen.aiDiff = -1
         print(self.screen.aiDiff)
