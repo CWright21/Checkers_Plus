@@ -5,7 +5,25 @@ from gametree import Coord
 from gametree import Move
 
 
-
+def get_size(obj, seen=None):
+    """Recursively finds size of objects"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if isinstance(obj, dict):
+        size += sum([get_size(v, seen) for v in obj.values()])
+        size += sum([get_size(k, seen) for k in obj.keys()])
+    elif hasattr(obj, '__dict__'):
+        size += get_size(obj.__dict__, seen)
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_size(i, seen) for i in obj])
+    return size
 
 class Piece:
     def __init__(self, team):
@@ -27,30 +45,37 @@ class VirtualBoard:
             for j in range(8):
                 row.append(None)
             self.vBoard[i] = row
+        self.a_bDiff = 0
 
     def initFromState(self, state):
-        self.vBoard = [[], [], [], [], [], [], [], []]
+        self.__init__()
         for c in range(8):
-            self.vBoard[c] = state[c]
+            for r in range(8):
+                self.vBoard[c][r] = state[c][r]
 
     def add_piece_to_board(self, x, y, piece):
         self.vBoard[x][y] = piece
 
     def move_piece(self, fromX, fromY, toX, toY):
+        if abs(fromX-toX) == 2 or abs(fromY-toY) == 2:
+            self.execute_jump(fromX, fromY, toX, toY)
+            return
         piece = None
         piece = self.vBoard[fromY][fromX]
         self.vBoard[fromY][fromX] = None
         self.vBoard[toY][toX] = piece
+        #print(str(self.vBoard.__str__()))
 
     '''
         returns true if move is valid
     '''
     def check_move(self, fromX, fromY, toX, toY, team):
-        print("checking from", fromX, ',', fromY, ' to ', toX, ',', toY)
+        #print("checking from", fromX, ',', fromY, ' to ', toX, ',', toY)
         # is piece at starting coords
         isAtStart = self.vBoard[fromY][fromX] is not None
         if isAtStart:
-            print("is at start")
+            #print("is at start", end='|')
+            pass
         else:
             return False
 
@@ -58,12 +83,14 @@ class VirtualBoard:
         endOpen = self.vBoard[toY][toX] is None
         #print(self.vBoard[toY][toX])
         if endOpen:
-            print("end is open")
+            #print("end is open", end='|')
+            pass
 
         # is the piece yours
         correctTeam = self.vBoard[fromY][fromX].team == team
         if correctTeam:
-            print("piece is yours")
+            #print("piece is yours", end='|')
+            pass
 
         # is valid direction to move (x +/- 1, y + 1)
         if self.vBoard[fromY][fromX].team == "red":
@@ -74,7 +101,8 @@ class VirtualBoard:
                             (fromY == toY + 1 and toX - 1 == fromX)
 
         if validPawnMove:
-            print("valid pawn move")
+            #print("valid pawn move", end='|')
+            pass
 
         # if king and valid king move (x +/- 1, y - 1)
         if self.vBoard[fromY][fromX].team == "red":
@@ -83,18 +111,19 @@ class VirtualBoard:
                              (fromY - 1  == toY and fromX - 1 == toX))
 
         else:
-            print(self.vBoard[fromY][fromX].king)
-            print((fromY + 1 == toY and (fromX + 1 == toX or fromX - 1 == toX)))
+            #print(self.vBoard[fromY][fromX].king)
+            #print((fromY + 1 == toY and (fromX + 1 == toX or fromX - 1 == toX)))
             validKingMove = self.vBoard[fromY][fromX].king and \
                             (fromY + 1 == toY and (fromX + 1 == toX or fromX - 1 == toX))
 
         if validKingMove:
-            print("valid king move")
-
+            #print("valid king move", end='|')
+            pass
+        #print()
         return isAtStart and endOpen and correctTeam and (validPawnMove or validKingMove)
 
     def king_piece(self, x, y):
-        print()
+        print('kinged a piece at %d,%d' % (x,y))
         self.vBoard[y][x].king_me()
 
     def get_king(self, x, y):
@@ -113,7 +142,7 @@ class VirtualBoard:
             for x in range(8):
                 returns = self.check_jump(x, y, team)
                 if returns.pop(0):
-                    print(returns)
+                    #print(returns)
                     for jump in returns:
                         possibleList.append(Move(Coord(x, y), Coord(jump[0], jump[1])))
                         print("found a jump from %d, %d to %d, %d" % (x, y, jump[0], jump[1]))
@@ -128,7 +157,6 @@ class VirtualBoard:
     post: returns a list of [bool, (x,y), (x,y)]
     '''
     def check_jump(self, x, y, team):
-        #TODO Write code to check for jumps across board
         toReturn = [False]
         #checking jump
         if self.vBoard[y][x] is not None:
@@ -190,15 +218,14 @@ class VirtualBoard:
                                 enemyDownRight = self.vBoard[y + 1][x + 1] is not None and self.vBoard[y + 1][
                                     x + 1].team != team
 
-                #if enemy exists
+                # if enemy exists
                 if enemyUpLeft or enemyUpRight or enemyDownLeft or enemyDownRight:
-                    print("\nJump function:\nUpLeft: ", enemyUpLeft, "\nUpRight: ", enemyUpRight, "\nDownLeft: ",
-                          enemyDownLeft, "\nDownRight: ", enemyDownRight)
-                    #TODO Optimize boolean checks, reduce to functions probably
-                    #check if the following tile is empty
+                    #print("\nJump function:\nUpLeft: ", enemyUpLeft, "\nUpRight: ", enemyUpRight, "\nDownLeft: ",enemyDownLeft, "\nDownRight: ", enemyDownRight)
+                    # TODO Optimize boolean checks, reduce to functions probably
+                    # check if the following tile is empty
 
                     if team == "red":
-                        print("red piece at %d,%d has enemies" % (x,y))
+                        #print("red piece at %d,%d has enemies" % (x,y))
                         withinRangeDown = 0 <= y - 2 < 8
                         withinRangeUp = 0 <= y + 2 < 8
                         withinRangeLeft = 0 <= x + 2 < 8
@@ -303,28 +330,31 @@ class VirtualBoard:
                 print("No piece at %d, %d" % (x, y), "\n")
 
     def generate_game_tree(self, team, diff):
-        #TODO Generate Game state tree from current state
-        #TODO LOOK into how a move is validated and why there are board states being generated that do not have moves associated or terminals
         '''
         each state should be named according to the format fromX,fromY-toX,toY
         '''
         states =[]
-        moves = self.generate_possible_team_moves(team)
-        print(moves)
+        moves = self.check_jumps(team)
+        if len(moves) == 0:
+            moves = self.generate_possible_team_moves(team)
+        #print(moves)
         for move in moves:
-            states += self.generate_game_tree_helper(move, diff, diff)
+            states.append(self.generate_game_tree_helper(move, diff, diff))
 
-        print('size of states', sys.getsizeof(states))
+        print('size of states', get_size(states))
         print(states)
         print()
-        return GameTree(states)
+        tree = GameTree(states)
+        print('size of tree', get_size(tree))
+        return tree
 
     #returns a list of possible game states assuming the move sent is made looking depth moves deep
     #account for game ending early
     def generate_game_tree_helper(self, move, depth, diff, team='red'):
         newBoard = VirtualBoard()
         newBoard.initFromState(self.vBoard)
-        newBoard.move_piece(move.frm.x, move.frm.y, move.to.x, move.to.x)
+        newBoard.move_piece(move.frm.x, move.frm.y, move.to.x, move.to.y)
+        #print(str(newBoard.__str__()))
 
         #base
         if depth == 0:
@@ -339,10 +369,16 @@ class VirtualBoard:
 
             nextMoves = newBoard.generate_possible_team_moves(team)
             children = []
-            #for every move possible for the pther team
-            for nextMove in nextMoves:
-                print("next Moves", nextMoves)
-                children.append(newBoard.generate_game_tree_helper(nextMove, depth-1, diff))
+            #for every move possible for the other team
+            nextJumps = newBoard.check_jumps(team)
+            #print('next jumps', nextJumps)
+            for jump in nextJumps:
+                children.append(newBoard.generate_game_tree_helper(jump, depth - 1, diff, team))
+            if len(nextJumps) == 0:
+                for nextMove in nextMoves:
+                    #print("next Moves", nextMoves)
+                    children.append(newBoard.generate_game_tree_helper(nextMove, depth-1, diff, team))
+
             child = [move, children]
 
             return child
@@ -352,13 +388,12 @@ class VirtualBoard:
     #account for if the game ends
     def generate_possible_moves(self, x, y, team):
         moves = []
-        #moves += self.check_jumps(team)
         fromX = x
         fromY = y
         for toY in range(y-1, y+2):
             for toX in range(x-1, x+2):
                 if 0 <= toX < 8 and 0 <= toY < 8 and self.check_move(fromX, fromY, toX, toY, team):
-                    moves.append(Move(Coord(fromX, fromY), Coord(toX, toY)))
+                    moves += [Move(Coord(fromX, fromY), Coord(toX, toY))]
         return moves
 
     # returns a list of possible moves given a team
@@ -374,8 +409,9 @@ class VirtualBoard:
         return moves
 
     def eval_state(self, diff):
-        #TODO grade each board state according to diff
+        # TODO grade each board state according to diff
         value = 0
+        #only piece count, favor keeping team pieces
         if diff > 0:
             for c in self.vBoard:
                 for piece in c:
@@ -384,10 +420,15 @@ class VirtualBoard:
                             value-=.5
                         elif piece.team == 'red':
                             value+=1
+
+        #count kings as more valuable
         if diff > 1:
             pass
+
+        #count the edges as stronger, 1 for edges, .5 for adjacent
         if diff > 2:
             pass
+
         return value
 
     def check_for_game_end(self):
@@ -433,8 +474,15 @@ class VirtualBoard:
                     elif char == 'b':
                         self.add_piece_to_board(r, c, Piece('black'))
 
+    def set_ai_difficulty(self, aiDiff):
+        self.a_bDiff = aiDiff
 
-
+    def do_ai_move(self):
+        tree = self.generate_game_tree('red', self.a_bDiff)
+        a_b = AlphaBeta(tree)
+        move = a_b.alpha_beta_search(a_b.root)
+        self.move_piece(move.frm.x, move.frm.y, move.to.x, move.to.y)
+        return move
 
 def main():
     filename = 'testBoardStates.txt'

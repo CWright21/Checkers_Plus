@@ -3,6 +3,7 @@ Config.set('graphics', 'resizable', 0)
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 from kivy.lang import Builder
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.uix.slider import Slider
@@ -25,6 +26,7 @@ from gametree import GameNode
 from alphabeta import AlphaBeta
 from virtualboard import VirtualBoard
 from virtualboard import Piece
+from gametree import Coord
 
 pathToKvlang = ".\\assets\\kvlang\\Checkers.kv"
 pathToBlackGrid = ".\\assets\\images\\black_grid.jpg"
@@ -45,6 +47,7 @@ class CheckerScreen(Widget):
         super(CheckerScreen, self).__init__()
         self.activeGame = False
         self.board = None
+        self.aiDiff = 0
 
     def human_game_button(self, widget):
         self.init_board()
@@ -65,7 +68,7 @@ class CheckerScreen(Widget):
         self.virtualBoard = VirtualBoard()
         self.board = self.ids.board
         self.board.clear_widgets()
-
+        self.virtualBoard.set_ai_difficulty(self.aiDiff)
         self.pieces = self.ids.pieces
         self.pieces.clear_widgets()
 
@@ -82,10 +85,13 @@ class CheckerScreen(Widget):
                     black = not black
 
                 if black:
+                    gridId = str(c) + ',' + str(r)
+                    print(gridId)
                     inst = ToggleButton(
                         background_normal=".\\assets\\images\\black_grid.jpg",
                         background_down=".\\assets\\images\\down_grid.jpg",
                         group='board',
+                        id=gridId
                     )
                     inst.bind(on_press=self.board_press)
                     inst.bind(on_release=self.board_release)
@@ -98,6 +104,9 @@ class CheckerScreen(Widget):
                                        background_normal=".\\assets\\images\\redPawn.png")
                         toAdd.bind(on_press=self.piece_press)
                         toAdd.bind(on_release=self.piece_release)
+                        if self.virtualBoard.a_bDiff > 0:
+                            toAdd.disabled = True
+                            toAdd.background_disabled_normal = ".\\assets\\images\\redPawn.png"
                         self.pieces.add_widget(toAdd)
                         # adding piece to virtual board
                         self.virtualBoard.add_piece_to_board(c, r, Piece('red'))
@@ -115,10 +124,13 @@ class CheckerScreen(Widget):
                         self.pieces.add_widget(Label())
 
                 else:
+                    gridId = str(c) + ',' + str(r)
+                    print(gridId)
                     inst = ToggleButton(
                         background_normal=".\\assets\\images\\white_grid.jpg",
                         background_down=".\\assets\\images\\down_grid.jpg",
-                        group='board'
+                        group='board',
+                        id=gridId
                     )
                     inst.bind(on_press=self.board_press)
                     inst.bind(on_release=self.board_release)
@@ -129,12 +141,15 @@ class CheckerScreen(Widget):
                     self.pieces.add_widget(Label())
 
         print(self.pieces.ids)
+        if self.aiDiff > 0:
+            pass
 
     def board_press(self, widget):
         print(self.virtualBoard)
         sizeOfGrid = list(widget.parent.size)
         print("Size of grid: ", sizeOfGrid)
         print("Size of screen: ", widget.parent.size)
+        print("id: ", widget.id)
         sizeOfGrid[0] -= 50
         sizeOfGrid[0] /= 8
         sizeOfGrid[1] -= 50
@@ -158,12 +173,86 @@ class CheckerScreen(Widget):
             fromY = int(idArr[1])
             self.move_piece_human(fromX, fromY, toX, toY, widget)
 
-    def move_piece_ai(self, fromX, fromY, toX, toY):
-        id = (str(toX) + ',' + str(toY))
+    def move_piece_ai(self, widget):
+        if self.activeTeam == 'red':
+            move = self.virtualBoard.do_ai_move()
+            self.move_piece_ai_helper(move.frm.x, move.frm.y, move.to.x, move.to.y)
+            possibleJumpMoves = self.virtualBoard.check_jumps(self.activeTeam)
+            self.possibleList = []
+            for move in possibleJumpMoves:
+                self.possibleList.append(move.to)
+        else:
+            print('not ai turn')
+
+    def move_piece_ai_helper(self, fromX, fromY, toX, toY):
+        id = (str(toY) + ',' + str(toX))
+        fromId = (str(fromX) + ',' + str(fromY))
+        print(id)
+        for grid in self.board.children:
+            if grid.id == id:
+                print(grid.pos)
+                pos = grid.pos
+                print("pos after", pos)
+        self.activePieceId = str(fromX)+','+str(fromY)
+        '''
         for child in self.pieces.children:
-            if child.id == id:
-                widget = Label(pos=child.pos)
-        self.move_piece_human(fromX, fromY, toX, toY, widget)
+            print(child.id)
+            if child.id == str(fromX)+','+str(fromY):
+                self.activePieceId = child.id
+        '''
+        #self.force_move_piece(fromX, fromY, toX, toY, widget, fromId)
+
+        for child in self.pieces.children:
+            print('active', self.activePieceId, 'child', child.id)
+            if child.id == self.activePieceId:
+                piece = child
+                break
+
+        if self.virtualBoard.get_team(toX, toY) == 'red' and toY == 7:
+            self.virtualBoard.king_piece(toX, toY)
+            print("ai king")
+            piece.background_disabled_normal = ".\\assets\\images\\redKing.png"
+
+        elif self.virtualBoard.get_team(toX, toY) == "black" and toY == 0:
+            self.virtualBoard.king_piece(toX, toY)
+            piece.background_disabled_normal = ".\\assets\\images\\blackKing.png"
+
+        print('pos before', piece.pos)
+        piece.pos = pos
+        piece.id = (str(toX) + ',' + str(toY))
+        self.switchTeam()
+        self.reset_piece_picture(piece)
+        self.activePieceId = None
+        temp = self.virtualBoard.check_for_game_end()
+        if temp[0]:
+            self.ids["center_text"].text = ("%s won!!" % (temp[1]))
+            self.del_board(None)
+
+        if abs(fromX-toX) == 2 and abs(fromY-toY) == 2:
+            if toX > fromX:
+                middleX = toX - 1
+            else:
+                middleX = toX + 1
+
+            if toY > fromY:
+                middleY = toY - 1
+            else:
+                middleY = toY + 1
+
+            for child in self.pieces.children:
+                print(child.id, str(middleX) + ',' + str(middleY), " | ", end='')
+                if child.id == str(middleX) + ',' + str(middleY):
+                    print("found child")
+                    print(piece.id, piece.opacity)
+                    child.opacity = .5
+                    child.pos = (0, 0)
+                    child.id = '9,9'
+                    child.disabled = True
+                    break
+
+        pass
+
+    def force_move_piece(self, fromX, fromY, toX, toY, widget, id):
         pass
 
     def move_piece_human(self, fromX, fromY, toX, toY, widget):
@@ -173,12 +262,20 @@ class CheckerScreen(Widget):
                 if child.id == self.activePieceId:
                     piece = child
 
-            print("move is a jump ", (toX, toY) in self.possibleList)
+            print("pos before", piece.pos)
+
+            isValidJump = False
+            for coords in self.possibleList:
+                if Coord(toX, toY) == (coords):
+                    isValidJump = True
+            print("move is a jump ", isValidJump)
             print(self.possibleList)
+            print(self.virtualBoard.check_move(fromX, fromY, toX, toY, self.activeTeam))
             if len(self.possibleList) == 0 and self.virtualBoard.check_move(fromX, fromY, toX, toY, self.activeTeam):
 
                 self.virtualBoard.move_piece(fromX, fromY, toX, toY)
                 piece.pos = widget.pos
+                print("pos after move", piece.pos)
                 piece.id = str(toX) + ',' + str(toY)
                 if self.activeTeam == "red" and toY == 7:
                     self.virtualBoard.king_piece(toX, toY)
@@ -198,14 +295,13 @@ class CheckerScreen(Widget):
                 if temp[0]:
                     self.ids["center_text"].text = ("%s won!!" % (temp[1]))
                     self.del_board(None)
-                #TODO Insert auto execute Jumps?
                 possibleJumpMoves = self.virtualBoard.check_jumps(self.activeTeam)
                 self.possibleList = []
                 for move in possibleJumpMoves:
                     self.possibleList.append(move.to)
 
-            #TODO execute jump
-            elif (toX, toY) in self.possibleList and (abs(fromX-toX) == 2 or abs(fromY-toY) == 2):
+            #TODO maybe double jump
+            elif isValidJump and (abs(fromX-toX) == 2 or abs(fromY-toY) == 2):
                 self.possibleList = []
                 self.virtualBoard.execute_jump(fromX, fromY, toX, toY)
 
@@ -256,12 +352,16 @@ class CheckerScreen(Widget):
                 self.possibleList = []
                 for move in possibleJumpMoves:
                     self.possibleList.append(move.to)
+                if self.aiDiff > 0 and self.activeTeam == 'red':
+                    pass
 
             else:
                 print("invalid move", end = '')
                 infotext = "invalid move"
                 if len(self.possibleList) > 0:
-                    print("there are valid moves")
+                    print()
+                    print('jumps:', self.possibleList[0])
+                    print("there are valid jumps")
                     infotext += ", there is/are valid jump(s)"
                 else:
                     print("make sure it is your turn")
@@ -334,6 +434,7 @@ class CheckersApp(App):
         print(self.screen.ids)
         return self.screen
 
+    # TODO change button text for start game
     def home_menu(self):
         scope = self.screen.ids['home']
         box = BoxLayout(orientation='horizontal')
@@ -344,6 +445,11 @@ class CheckersApp(App):
         toAdd = Button(text="Destroy Game")
         toAdd.bind(on_release=self.screen.del_board)
         box.add_widget(toAdd)
+
+        toAdd = Button(text='Do Next Ai Move')
+        toAdd.bind(on_release=self.screen.move_piece_ai)
+        box.add_widget(toAdd)
+
         scope.add_widget(box)
         pass
 
@@ -362,7 +468,7 @@ class CheckersApp(App):
         box.add_widget(butt1)
 
         butt2 = Button(text="Select AI")
-        butt2.bind(on_release=self.notImplmented)
+        butt2.bind(on_press=self.pickAI)
         box.add_widget(butt2)
 
 
@@ -377,12 +483,31 @@ class CheckersApp(App):
         windowSize = (self.screenSlider.value, self.screenSlider.value*11/10)
         Window.size = windowSize
 
-    def notImplmented(self, widget):
+    def pickAI(self, widget):
         popSize = list(widget.parent.size)
         popSize[0] /= 2
         popSize[1] /= 2
-        popGary = Popup(title='This not implemented yet', size_hint=(.5, .5), content=Label(text='Stay tuned for checkpoint 3', size=(100, 100)))
-        popGary.open()
+        popButtonLayout = BoxLayout(orientation='vertical')
+        buttonToAdd = ToggleButton(text="Easy", id='easy', group='aiDiff')
+        if self.screen.aiDiff == 1:
+            buttonToAdd.state = 'down'
+        buttonToAdd.bind(on_press=self.aiSelect)
+        popButtonLayout.add_widget(buttonToAdd)
+
+        buttonToAdd = ToggleButton(text="Medium", id='med', group='aiDiff')
+        if self.screen.aiDiff == 2:
+            buttonToAdd.state = 'down'
+        buttonToAdd.bind(on_press=self.aiSelect)
+        popButtonLayout.add_widget(buttonToAdd)
+
+        buttonToAdd = ToggleButton(text="Hard", id='hard', group='aiDiff')
+        if self.screen.aiDiff == 3:
+            buttonToAdd.state = 'down'
+        buttonToAdd.bind(on_press=self.aiSelect)
+        popButtonLayout.add_widget(buttonToAdd)
+
+        popAI= Popup(title='Pick an AI', size_hint=(.5, .5), content=(popButtonLayout))
+        popAI.open()
 
     def gary(self, widget):
         popSize = list(widget.parent.size)
@@ -391,6 +516,20 @@ class CheckersApp(App):
         popGary = Popup(title='This is Gary', size_hint=(.5, .5), content=Image(source="gary.png", size=(100, 100)))
         popGary.open()
 
+    def aiSelect(self, widget):
+        if widget.id == 'easy':
+            self.screen.aiDiff = 1
+        elif widget.id == 'med':
+            self.screen.aiDiff = 2
+        elif widget.id == 'hard':
+            self.screen.aiDiff = 3
+        elif widget.id == 'none':
+            self.screen.aiDiff = -1
+        print(self.screen.aiDiff)
+
+# TODO add options for AI only game?
+
+# TODO refine codebase further to seperate code more effectivly
 
 if __name__ == '__main__':
     Builder.load_file(pathToKvlang)
