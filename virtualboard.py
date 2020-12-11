@@ -5,6 +5,19 @@ from gametree import Coord
 from gametree import Move
 
 
+'''
+    Title: getsizeof_recursive.py
+    Author: durden
+    Source: https://gist.github.com/durden/0b93cfe4027761e17e69c48f9d5c4118
+    Licence: MIT
+        The following method 'get_size' is attributed to github user "durden"
+        
+    desc: Get size of Python object recursively to handle size of containers within containers
+
+'''
+
+
+# Start attribution
 def get_size(obj, seen=None):
     """Recursively finds size of objects"""
     size = sys.getsizeof(obj)
@@ -25,6 +38,10 @@ def get_size(obj, seen=None):
         size += sum([get_size(i, seen) for i in obj])
     return size
 
+# End attribution
+
+
+# simple obj that holds piece data
 class Piece:
     def __init__(self, team):
         self.team = team
@@ -37,6 +54,7 @@ class Piece:
         self.king = True
 
 
+# compound obj of pieces
 class VirtualBoard:
     def __init__(self):
         self.vBoard = [[], [], [], [], [], [], [], []]
@@ -48,15 +66,30 @@ class VirtualBoard:
         self.a_bDiff = 0
         self.learning = None
 
+    '''
+        pre: Matrix of pieces, state
+        post: Initialized virtual board
+        desc: constructs a virtual board from a matrix of pieces
+    '''
     def initFromState(self, state):
         self.__init__()
         for c in range(8):
             for r in range(8):
                 self.vBoard[c][r] = state[c][r]
 
+    '''
+        pre: None
+        post: None
+        desc: adds piece at x, y,
+    '''
     def add_piece_to_board(self, x, y, piece):
         self.vBoard[x][y] = piece
 
+    '''
+        pre: all param are indices
+        post: Piece moved in virtual board
+        desc: Move from x,y to x,y
+    '''
     def move_piece(self, fromX, fromY, toX, toY):
         if abs(fromX-toX) == 2 or abs(fromY-toY) == 2:
             self.execute_jump(fromX, fromY, toX, toY)
@@ -68,10 +101,11 @@ class VirtualBoard:
         #print(str(self.vBoard.__str__()))
 
     '''
-        returns true if move is valid
+        pre: all param are indices
+        post: None
+        desc: returns true if move is valid
     '''
     def check_move(self, fromX, fromY, toX, toY, team):
-        #print("checking from", fromX, ',', fromY, ' to ', toX, ',', toY)
         # is piece at starting coords
         isAtStart = self.vBoard[fromY][fromX] is not None
         if isAtStart:
@@ -123,20 +157,39 @@ class VirtualBoard:
         #print()
         return isAtStart and endOpen and correctTeam and (validPawnMove or validKingMove)
 
+    '''
+        pre: all param are indices
+        post: None
+        desc: kings piece at x,y
+    '''
     def king_piece(self, x, y):
-        print('kinged a piece at %d,%d' % (x,y))
         self.vBoard[y][x].king_me()
 
+    '''
+        pre: all param are indices
+        post: None
+        desc: Gets king at x,y
+    '''
     def get_king(self, x, y):
         if self.vBoard[y][x] is not None:
             return self.vBoard[y][x].king
         return False
 
+    '''
+        pre: all param are indices
+        post: None
+        desc: gets team of piece at x,y
+    '''
     def get_team(self, x, y):
         if self.vBoard[y][x] is not None:
             return self.vBoard[y][x].team
         return None
 
+    '''
+        pre: valid team (one playing)
+        post: None
+        desc: returns possible jumps
+    '''
     def check_jumps(self, team):
         possibleList = []
         for y in range(8):
@@ -154,8 +207,9 @@ class VirtualBoard:
         return possibleList
 
     '''
-    pre:
-    post: returns a list of [bool, (x,y), (x,y)]
+        pre: indices x,y and valid team
+        post: returns a list of [bool, (x,y), (x,y)]
+        desc: checks if jump is valid, hard coded iteratively for speed of execution
     '''
     def check_jump(self, x, y, team):
         toReturn = [False]
@@ -222,7 +276,6 @@ class VirtualBoard:
                 # if enemy exists
                 if enemyUpLeft or enemyUpRight or enemyDownLeft or enemyDownRight:
                     #print("\nJump function:\nUpLeft: ", enemyUpLeft, "\nUpRight: ", enemyUpRight, "\nDownLeft: ",enemyDownLeft, "\nDownRight: ", enemyDownRight)
-                    # TODO Optimize boolean checks, reduce to functions probably
                     # check if the following tile is empty
 
                     if team == "red":
@@ -311,6 +364,11 @@ class VirtualBoard:
                                     pass
         return toReturn
 
+    '''
+        pre: all param are indices
+        post: piece is jumped from x,y to x,y
+        desc: jumps piece
+    '''
     def execute_jump(self, fromX, fromY, toX, toY):
         piece = self.vBoard[fromY][fromX]
 
@@ -330,6 +388,11 @@ class VirtualBoard:
         self.vBoard[fromY][fromX] = None
         pass
 
+    '''
+        pre: all param are indices
+        post: None
+        desc: returns piece at x, y
+    '''
     def announce_piece(self, x, y):
         if x < 8 and y < 8:
             piece = self.vBoard[int(x)][int(y)]
@@ -338,6 +401,11 @@ class VirtualBoard:
             else:
                 print("No piece at %d, %d" % (x, y), "\n")
 
+    '''
+        pre: Valid team and difficulty
+        post: None
+        desc: returns a gamestate tree based on difficulty of ai
+    '''
     def generate_game_tree(self, team, diff):
         '''
         each state should be named according to the format fromX,fromY-toX,toY
@@ -358,8 +426,11 @@ class VirtualBoard:
         return tree
 
     # TODO Mutli thread it?
-    #returns a list of possible game states assuming the move sent is made looking depth moves deep
-    #account for game ending early
+    '''
+        pre: called by generate_game_tree
+        post: None
+        desc: returns a list of possible game states assuming the move sent is made looking depth moves deep
+    '''
     def generate_game_tree_helper(self, move, depth, diff, team='red'):
         newBoard = VirtualBoard()
         newBoard.initFromState(self.vBoard)
@@ -393,9 +464,11 @@ class VirtualBoard:
 
             return child
 
-    #returns a list of possible moves given a starting coord
-    #format: [((fromx,fromy) , (tox,toy)) , ...]
-    #account for if the game ends
+    '''
+        pre: Valid team and difficulty
+        post: format: [((fromx,fromy) , (tox,toy)) , ...]
+        desc: returns a list of possible moves given a starting coord
+    '''
     def generate_possible_moves(self, x, y, team):
         moves = []
         fromX = x
@@ -406,9 +479,11 @@ class VirtualBoard:
                     moves += [Move(Coord(fromX, fromY), Coord(toX, toY))]
         return moves
 
-    # returns a list of possible moves given a team
-    # format: [((fromx,fromy) , (tox,toy)) , ...]
-    # account for if the game ends
+    '''
+        pre: Valid team and difficulty
+        post: format: [((fromx,fromy) , (tox,toy)) , ...]
+        desc: returns a list of possible moves given a team
+    '''
     def generate_possible_team_moves(self, team):
         moves = []
         for y in range(8):
@@ -418,8 +493,12 @@ class VirtualBoard:
                     moves += self.generate_possible_moves(x, y, team)
         return moves
 
+    '''
+        pre: int difficulty 
+        post: None
+        desc: Evals state
+    '''
     def eval_state(self, diff):
-        # TODO grade each board state according to diff
         value = 0
 
         for c in self.vBoard:
@@ -445,11 +524,13 @@ class VirtualBoard:
                                 if c == 0 or c == 7:
                                     value += 3
 
-
-
-
         return value
 
+    '''
+        pre: None
+        post: None
+        desc: returns (true, x) f game over, x is team that won
+    '''
     def check_for_game_end(self):
         redLose = True
         blackLose = True
@@ -485,6 +566,11 @@ class VirtualBoard:
 
         return (False, 'none')
 
+    '''
+        pre: None
+        post: None
+        desc: returns string representation
+    '''
     def __str__(self):
         toReturn = ''
         for c in range(8):
@@ -499,6 +585,11 @@ class VirtualBoard:
             toReturn += '\n'
         return toReturn
 
+    '''
+        pre: string board stored in fine named fname
+        post: None
+        desc: parse string version of board
+    '''
     def parse_data_as_text(self, fname):
         with open(fname) as f:
             for r in range(8):
@@ -510,9 +601,19 @@ class VirtualBoard:
                     elif char == 'b':
                         self.add_piece_to_board(r, c, Piece('black'))
 
+    '''
+        pre: aiDiff int
+        post: None
+        desc: sets diff
+    '''
     def set_ai_difficulty(self, aiDiff):
         self.a_bDiff = aiDiff
 
+    '''
+        pre: None
+        post: ai move made
+        desc: does ai move
+    '''
     def do_ai_move(self):
         if self.a_bDiff != -2:
             tree = self.generate_game_tree('red', self.a_bDiff)
@@ -523,11 +624,16 @@ class VirtualBoard:
             move = self.learning.choose_move(self)
         return move
 
+    '''
+        pre: Learning AI model, ai
+        post: None
+        desc: add learning ai model
+    '''
     def addLearningAi(self, ai):
         self.learning = ai
 
 def main():
-    filename = 'testBoardStates.txt'
+    filename = '.\\assets\\test_files\\testBoardStates.txt'
     print("hello world! " + filename)
     testBoard = VirtualBoard()
     testBoard.parse_data_as_text(filename)

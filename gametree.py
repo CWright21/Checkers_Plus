@@ -30,6 +30,13 @@ class Coord:
         return str(self.x) + ',' + str(self.y)
 
 
+'''
+    Title: Recursively Parsing a List of Lists into a Game Tree Using Python
+    Author: adpoe
+    Source: https://tonypoer.io/2016/10/08/recursively-parsing-a-list-of-lists-into-a-game-tree-using-python/
+    Licence: N/A
+        The following class was adapted and modified from a post by adpoe
+'''
 class GameTree:
     '''
     Generates a tree from a list of states starting with states[0] as the root

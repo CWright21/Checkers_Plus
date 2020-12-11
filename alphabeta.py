@@ -1,3 +1,10 @@
+'''
+    Title: Implementing Minimax and Alpha-Beta Pruning Using Python
+    Author: adpoe
+    Source: https://tonypoer.io/2016/10/28/implementing-minimax-and-alpha-beta-pruning-using-python/
+    Licence: N/A
+        The following class was adapted and modified from a post by adpoe
+'''
 class AlphaBeta:
     # print utility value of root node (assuming it is max)
     # print names of all nodes visited during search, disabled normally to reduce runtime
