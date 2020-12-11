@@ -46,6 +46,7 @@ class VirtualBoard:
                 row.append(None)
             self.vBoard[i] = row
         self.a_bDiff = 0
+        self.learning = None
 
     def initFromState(self, state):
         self.__init__()
@@ -459,12 +460,29 @@ class VirtualBoard:
                         redLose = False
                     elif piece.team == 'black':
                         blackLose = False
+        redCanMove = len(self.generate_possible_team_moves('red')) > 0
+        blackCanMove = len(self.generate_possible_team_moves('black')) > 0
+
+        if not redCanMove:
+            redLose = True
+        if not blackCanMove:
+            blackLose = True
+
         if redLose:
             print("red no more pieces")
+            if self.learning is not None:
+                self.learning.reinforce_game(False)
+                self.learning.save()
             return (True, 'black')
+
         if blackLose:
             print("black no more pieces")
+            if self.learning is not None:
+                self.learning.reinforce_game(True)
+                self.learning.save()
             return (True, 'red')
+
+
         return (False, 'none')
 
     def __str__(self):
@@ -496,11 +514,17 @@ class VirtualBoard:
         self.a_bDiff = aiDiff
 
     def do_ai_move(self):
-        tree = self.generate_game_tree('red', self.a_bDiff)
-        a_b = AlphaBeta(tree)
-        move = a_b.alpha_beta_search(a_b.root)
-        self.move_piece(move.frm.x, move.frm.y, move.to.x, move.to.y)
+        if self.a_bDiff != -2:
+            tree = self.generate_game_tree('red', self.a_bDiff)
+            a_b = AlphaBeta(tree)
+            move = a_b.alpha_beta_search(a_b.root)
+            self.move_piece(move.frm.x, move.frm.y, move.to.x, move.to.y)
+        else:
+            move = self.learning.choose_move(self)
         return move
+
+    def addLearningAi(self, ai):
+        self.learning = ai
 
 def main():
     filename = 'testBoardStates.txt'

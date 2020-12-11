@@ -1,6 +1,15 @@
 
 <CheckerScreen>:
     tabMenu: menu
+
+    FloatLayout:
+        id: starting_img
+        size: root.size
+        Image:
+            id: logo
+            pos_hint: {'top': 1}
+            source: ".\\assets\\images\\logo.png"
+
     BoxLayout:
 
         size: root.width, root.height
@@ -33,7 +42,7 @@
             canvas.before:
                 BorderImage:
                     id: backgroundImg
-                    source: ".\\assets\\images\\chessboard.jpg"
+                    source: ".\\assets\\images\\chessboard2.jpg"
                     #border: 500,500,500,500
                     pos: self.pos
                     size: self.size
@@ -57,6 +66,8 @@
             color: 1, 1, 1, 1
             opacity: 1
             font_size: 20
+
+
 
 
 <CBoxLayout@BoxLayout+BackgroundColor>
